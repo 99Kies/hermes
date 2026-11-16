@@ -8,6 +8,14 @@ This section includes a summary of the supported and planned features. It also i
 > IBC-go versions `6.3.1` through `10.x` are officially supported.
 > In case Hermes finds an incompatible SDK or IBC-go version, it will output a log warning upon initialization as part of the `start` command or upon `health-check` command.
 
+The Dora Vota v1.1.0 Cosmos stack (SDK 0.55.0, IBC-go 11.2.0 and
+CometBFT 0.40.0) is also recognized for classic ICS-20 with Ed25519
+validators. Hermes selects the 0.38 RPC layout for CometBFT 0.40 and
+honors any explicit `compat_mode` override. Native ML-DSA user transactions
+are signed on Dora. Hermes relays those packets with its existing Cosmos
+transaction signer; this does not add support for ML-DSA relayer or
+validator keys.
+
 ---
 
 ## Supported Features

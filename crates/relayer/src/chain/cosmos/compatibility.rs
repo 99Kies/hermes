@@ -4,6 +4,7 @@ use thiserror::Error;
 use tracing::debug;
 
 use super::version;
+use crate::chain::version::ConsensusVersion;
 
 /// Specifies the SDK module version requirement.
 ///
@@ -53,10 +54,29 @@ pub enum Diagnostic {
 pub(crate) fn run_diagnostic(specs: &version::Specs) -> Result<(), Diagnostic> {
     debug!("running diagnostic on version specs: {specs}");
 
+    // The Dora Vota v1.1.0 stack has been tested for classic ICS-20 with
+    // Ed25519 validator keys. Keep the exception narrow: module versions
+    // alone do not establish compatibility with new validator key types.
+    if is_tested_dora_stack(specs) {
+        return Ok(());
+    }
+
     sdk_diagnostic(specs.cosmos_sdk.as_ref())?;
     ibc_go_diagnostic(specs.ibc_go.as_ref())?;
 
     Ok(())
+}
+
+fn is_tested_dora_stack(specs: &version::Specs) -> bool {
+    let matches = |v: &semver::Version, major, minor, patch| {
+        (v.major, v.minor, v.patch) == (major, minor, patch)
+    };
+    matches!(&specs.consensus, Some(ConsensusVersion::Comet(v)) if matches(v, 0, 40, 0))
+        && specs
+            .cosmos_sdk
+            .as_ref()
+            .is_some_and(|v| matches(v, 0, 55, 0))
+        && specs.ibc_go.as_ref().is_some_and(|v| matches(v, 11, 2, 0))
 }
 
 fn sdk_diagnostic(version: Option<&semver::Version>) -> Result<(), Diagnostic> {
@@ -95,5 +115,25 @@ fn ibc_go_diagnostic(version: Option<&semver::Version>) -> Result<(), Diagnostic
                 found: version.to_string(),
             }),
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_tested_stack_without_accepting_other_sdk_055_stacks() {
+        let mut specs = version::Specs {
+            cosmos_sdk: Some(semver::Version::new(0, 55, 0)),
+            ibc_go: Some(semver::Version::new(11, 2, 0)),
+            consensus: Some(ConsensusVersion::Comet(semver::Version::new(0, 40, 0))),
+        };
+        assert!(run_diagnostic(&specs).is_ok());
+        specs.ibc_go = Some(semver::Version::new(11, 1, 0));
+        assert!(matches!(
+            run_diagnostic(&specs),
+            Err(Diagnostic::MismatchingSdkModuleVersion { .. })
+        ));
     }
 }
