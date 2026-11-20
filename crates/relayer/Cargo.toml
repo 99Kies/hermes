@@ -75,7 +75,7 @@ sha2                             = { workspace = true }
 signature                        = { workspace = true }
 strum                            = { workspace = true, features = ["derive"] }
 subtle-encoding                  = { workspace = true }
-tendermint                       = { workspace = true, features = ["secp256k1"] }
+tendermint                       = { workspace = true, features = ["secp256k1", "mldsa65"] }
 tendermint-light-client          = { workspace = true, features = ["rpc-client", "secp256k1", "unstable"] }
 tendermint-light-client-detector = { workspace = true }
 tendermint-light-client-verifier = { workspace = true }
